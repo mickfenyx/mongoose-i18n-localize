@@ -1,15 +1,123 @@
 /* jshint node: true, mocha: true */
 'use strict';
 
-var mongoose = require('mongoose');
-var should = require('should');
-
-var helper = require('../helper');
-var mongooseI18n = require('../../index');
+var mongoose = require('mongoose'),
+	should = require('should'),
+	helper = require('../helper'),
+	mongooseI18n = require('../../index')
+;
+if (global.Promise) {mongoose.Promise = global.Promise;}
 
 module.exports = function() {
 
-	describe('I18n', function() {
+	describe('Configuration', function() {
+		afterEach(helper.afterEach);
+		it('should store i18n fields in nested schema', function(done) {
+			var Model = mongoose.model('I18nNestedSchema', helper.createI18nNestedSchema().plugin(mongooseI18n));
+
+			var model = new Model({
+				nested: {
+					name: {
+						en: 'hello',
+						de: 'hallo'
+					}
+				}
+			});
+
+			model.nested.name.en.should.equal('hello');
+			model.nested.name.de.should.equal('hallo');
+
+			var json = Model.schema.methods.toJSONLocalized(model, 'de');
+			json.nested.name.en.should.equal('hello');
+			json.nested.name.de.should.equal('hallo');
+			json.nested.name.localized.should.equal('hallo');
+
+			var obj = Model.schema.methods.toObjectLocalized(model, 'en');
+			obj.nested.name.en.should.equal('hello');
+			obj.nested.name.de.should.equal('hallo');
+			obj.nested.name.localized.should.equal('hello');
+
+			done();
+		});
+
+		it('should store i18n fields in nested schema array', function(done) {
+			var Model = mongoose.model('I18nNestedSchemaArray', helper.createI18nNestedSchemaArray().plugin(mongooseI18n));
+
+			var model = new Model({
+				nested: [{
+					name: {
+						en: 'hello',
+						de: 'hallo'
+					}
+				}]
+			});
+
+			model.nested[0].name.en.should.equal('hello');
+			model.nested[0].name.de.should.equal('hallo');
+
+			var json = Model.schema.methods.toJSONLocalized(model, 'de');
+			json.nested[0].name.en.should.equal('hello');
+			json.nested[0].name.de.should.equal('hallo');
+			json.nested[0].name.localized.should.equal('hallo');
+
+			var obj = Model.schema.methods.toObjectLocalized(model, 'en');
+			obj.nested[0].name.en.should.equal('hello');
+			obj.nested[0].name.de.should.equal('hallo');
+			obj.nested[0].name.localized.should.equal('hello');
+
+			done();
+		});
+
+		it('should adopt validation for every i18n field', function(done) {
+			var Model = mongoose.model('I18nValidationSchema', helper.createI18nValidationSchema().plugin(mongooseI18n, {
+				locales: ['en', 'de']
+			}));
+			Model.on('index', function name(merr) {
+
+				new Model().save(function(err) {
+					should.exist(err);
+					err.errors['name.en'].kind.should.equal('required');
+					err.errors['name.de'].kind.should.equal('required');
+
+					new Model({
+						name: {
+							en: 'a',
+							de: '123'
+						}
+					}).save(function(err) {
+						should.exist(err);
+						err.errors['name.en'].kind.should.equal('minlength');
+						err.errors['name.de'].kind.should.equal('user defined');
+
+						new Model({
+							name: {
+								en: 'abc',
+								de: 'abc'
+							}
+						}).save(function(err) {
+							should.not.exist(err);
+
+							new Model({
+								name: {
+									en: 'abc',
+									de: 'def'
+								}
+							}).save(function(err, doc) {
+								should.exist(err);
+								err.message.should.match(/dup key/);
+								err.message.should.match(/name.en/);
+
+								done();
+							});
+						});
+					});
+				});
+			});
+		});
+
+	});
+
+	describe('Consumption', function() {
 		afterEach(helper.afterEach);
 
 		it('should store i18n fields', function(done) {
@@ -171,104 +279,4 @@ module.exports = function() {
 		});
 	});
 
-	it('should store i18n fields in nested schema', function(done) {
-		var Model = mongoose.model('I18nNestedSchema', helper.createI18nNestedSchema().plugin(mongooseI18n));
-
-		var model = new Model({
-			nested: {
-				name: {
-					en: 'hello',
-					de: 'hallo'
-				}
-			}
-		});
-
-		model.nested.name.en.should.equal('hello');
-		model.nested.name.de.should.equal('hallo');
-
-		var json = Model.schema.methods.toJSONLocalized(model, 'de');
-		json.nested.name.en.should.equal('hello');
-		json.nested.name.de.should.equal('hallo');
-		json.nested.name.localized.should.equal('hallo');
-
-		var obj = Model.schema.methods.toObjectLocalized(model, 'en');
-		obj.nested.name.en.should.equal('hello');
-		obj.nested.name.de.should.equal('hallo');
-		obj.nested.name.localized.should.equal('hello');
-
-		done();
-	});
-
-	it('should store i18n fields in nested schema array', function(done) {
-		var Model = mongoose.model('I18nNestedSchemaArray', helper.createI18nNestedSchemaArray().plugin(mongooseI18n));
-
-		var model = new Model({
-			nested: [{
-				name: {
-					en: 'hello',
-					de: 'hallo'
-				}
-			}]
-		});
-
-		model.nested[0].name.en.should.equal('hello');
-		model.nested[0].name.de.should.equal('hallo');
-
-		var json = Model.schema.methods.toJSONLocalized(model, 'de');
-		json.nested[0].name.en.should.equal('hello');
-		json.nested[0].name.de.should.equal('hallo');
-		json.nested[0].name.localized.should.equal('hallo');
-
-		var obj = Model.schema.methods.toObjectLocalized(model, 'en');
-		obj.nested[0].name.en.should.equal('hello');
-		obj.nested[0].name.de.should.equal('hallo');
-		obj.nested[0].name.localized.should.equal('hello');
-
-		done();
-	});
-
-	it('should adopt validation for every i18n field', function(done) {
-		var Model = mongoose.model('I18nValidationSchema', helper.createI18nValidationSchema().plugin(mongooseI18n, {
-			locales: ['en', 'de']
-		}));
-
-		new Model().save(function(err) {
-			should.exist(err);
-			err.errors['name.en'].kind.should.equal('required');
-			err.errors['name.de'].kind.should.equal('required');
-
-			new Model({
-				name: {
-					en: 'a',
-					de: '123'
-				}
-			}).save(function(err) {
-				should.exist(err);
-				err.errors['name.en'].kind.should.equal('minlength');
-				err.errors['name.de'].kind.should.equal('user defined');
-
-				new Model({
-					name: {
-						en: 'abc',
-						de: 'abc'
-					}
-				}).save(function(err) {
-					should.not.exist(err);
-
-					new Model({
-						name: {
-							en: 'abc',
-							de: 'def'
-						}
-					}).save(function(err) {
-						should.exist(err);
-						err.message.should.match(/dup key/);
-						err.message.should.match(/name.en/);
-
-						done();
-					});
-				});
-			});
-		});
-	});
 };
