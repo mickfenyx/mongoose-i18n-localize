@@ -3,112 +3,143 @@
 function ArrNoDupe(a) {
     var temp = {}, r = [], i = 0, k;
     for (i ; i < a.length; i++) {temp[a[i]] = true;}
-    for (k in temp){ temp.hasOwnProperty(k) && r.push(k); }
+    for (k in temp){ if (temp.hasOwnProperty(k)) {r.push(k);} }
     return r;
 }
 module.exports = function(schema, options) {
-	var options_locales = ArrNoDupe(options.locales||[])
-	;
-	var addLocales = function(pathname, schema) {
-		var instance = schema.paths[pathname].instance;
-		var config = schema.paths[pathname].options;
-
+	var options_locales = ArrNoDupe((options||{}).locales||[]);
+	function addLocales(pathname, schema) {
+		var instance = schema.paths[pathname].instance,
+			config = schema.paths[pathname].options
+		;
 		if (config.i18n && instance === 'String') {
 			delete(config.i18n);
+			config._i18n = true;
 			schema.remove(pathname);
 
 			options_locales.forEach(function(locale) {
 				schema.path(pathname + '.' + locale, config);
 			});
 		}
-	};
+	}
 
-	var recursiveIteration = function(schema) {
+	function recursiveIteration(schema) {
 		for (var key in schema.paths) {
-			if (schema.paths[key].schema) recursiveIteration(schema.paths[key].schema);
-			else addLocales(schema.paths[key].path, schema);
-		}
-	};
-
-	if (options && options_locales instanceof Array && options_locales.length > 0) recursiveIteration(schema);
-
-	var localize = function(obj, locale, toJSON) {
-		var addLocalized = function(obj) {
-			for (var key in obj) {
-				if (key === '_id') continue;
-				else if (typeof obj[key] === 'object') addLocalized(obj[key]);
-				else if (key === locale) obj.localized = obj[key];
+			if (schema.paths.hasOwnProperty(key)) {
+				var sPath = schema.paths[key];
+				if (sPath.schema) {
+					recursiveIteration(sPath.schema);
+				} else {
+					addLocales(sPath.path, schema);
+				}
 			}
-			return obj;
-		};
-
-		if (obj instanceof Array) return obj.map(function(object) {
-			return addLocalized(toJSON ? object.toJSON() : object.toObject(), locale);
-		});
-		else return addLocalized(toJSON ? obj.toJSON() : obj.toObject(), locale);
-	};
-
-	schema.methods.toJSONLocalized = function(obj, locale) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localize(obj, locale, true);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localize(this, obj, true);
 		}
-		return ret;
-	};
+	}
 
-	schema.methods.toObjectLocalized = function(obj, locale) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localize(obj, locale, false);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localize(this, obj, false);
-		}
-		return ret;
-	};
-	
-	var localizeOnly = function(obj, locale, localeDefault, toJSON) {
-		var addLocalized = function(obj) {
-			for (var key in obj) {
-				if (key === '_id') continue;
-				else if (typeof obj[key] === 'object') {
-					addLocalized(obj[key]);
-					if(obj[key] && obj[key].localized !== undefined) {
-						obj[key] = obj[key].localized;
-					} else if(localeDefault && obj[key] && obj[key].default !== undefined) {
-						obj[key] = obj[key].default;
+	if (options_locales.length > 0) {
+		recursiveIteration(schema);
+	}
+
+	function getI18nCapsulePaths(prePath, schema) {
+		var i18nPathCapsules = [], i18nCapsulePathMask = /^(.*)\.[^\.]*$/;
+		for (var schemaPath in schema.paths) {
+			if (schema.paths.hasOwnProperty(schemaPath)) {
+				var schemaField = schema.paths[schemaPath];
+				if (schema.childSchemas.indexOf(schemaField.schema) !== -1) {
+					i18nPathCapsules = i18nPathCapsules.concat(getI18nCapsulePaths(prePath+(prePath&&'.')+schemaPath, schemaField.schema));
+				} else if (schemaField.options._i18n) {
+					var i18nCapsulePath = (prePath+(prePath&&'.')+schemaPath).replace(i18nCapsulePathMask, '$1');
+					if (i18nPathCapsules.indexOf(i18nCapsulePath) === -1) {
+						i18nPathCapsules.push(i18nCapsulePath);
+						break;
 					}
 				}
-				else if (key === locale) obj.localized = obj[key];
-				else if (localeDefault && key === localeDefault) obj.default = obj[key];
 			}
-			return obj;
-		};
+		}
+		return i18nPathCapsules;
+	}
 
-		if (obj instanceof Array) return obj.map(function(object) {
-			return addLocalized(toJSON ? object.toJSON() : object.toObject(), locale);
+	function localyzeCapsule(obj, slug, locale, localeDefault, only) {
+		var val, defVal;
+		locale && (val = obj[slug][locale]);
+		localeDefault && (defVal = obj[slug][localeDefault]);
+		if (only) {
+			obj[slug] = val || defVal;
+		} else {
+			obj[slug].localized = val || defVal;
+		}
+	}
+
+	function localyzeRecursive(obj, i18nCapsulePathArr, locale, localeDefault, only) {
+		var thisSubObjPath = i18nCapsulePathArr[0],
+			thisSubObj = obj[thisSubObjPath]
+		;
+		if (i18nCapsulePathArr.length === 1) {
+			if (obj instanceof Array) {
+				obj.map(function (i) {
+					localyzeCapsule(i, thisSubObjPath, locale, localeDefault, only);
+				});
+			} else {
+				localyzeCapsule(obj, thisSubObjPath, locale, localeDefault, only);
+			}
+		} else if (i18nCapsulePathArr.length > 1) {
+			if (thisSubObj instanceof Array) {
+				thisSubObj.map(function (i) {
+					localyzeRecursive(i, i18nCapsulePathArr.slice(1), locale, localeDefault, only);
+				});
+			} else {
+				localyzeRecursive(thisSubObj, i18nCapsulePathArr.slice(1), locale, localeDefault, only);
+			}
+		}
+	}
+
+	function addLocalized(obj, locale, localeDefault, toJSON, only) {
+		var _obj = toJSON ? obj.toJSON() : obj.toObject(),
+			i18nCapsulePaths = getI18nCapsulePaths('', obj.schema) || [],
+			val, defVal
+		;
+		i18nCapsulePaths.forEach(function(i18nCapsulePath) {
+			var i18nCapsulePathArr = i18nCapsulePath.split('.');
+			localyzeRecursive(_obj, i18nCapsulePathArr, locale, localeDefault, only);
 		});
-		else return addLocalized(toJSON ? obj.toJSON() : obj.toObject(), locale);
-	};
+		return _obj;
+	}
 
-	schema.methods.toJSONLocalizedOnly = function(obj, locale, localeDefault) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localizeOnly(obj, locale, localeDefault, true);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localizeOnly(this, obj, locale, true);
+	function guessMorphAndApply(_this, args, extra) {
+		var newArgs=[], argsNum = 3, target = args[0], ret;
+		if (typeof args[0] === 'string' && _this.hasOwnProperty('isNew')) {
+			newArgs.push(target = _this);
+			argsNum = 2;
+		}
+		for (var i = 0; i < argsNum; i++) {
+			newArgs.push(args[i]);
+		}
+		(extra||[]).forEach(function(i) {
+			newArgs.push(i);
+		});
+		if (target instanceof Array) {
+			ret = target.map(function(object) {
+				return addLocalized.apply(_this, newArgs);
+			});
+		} else {
+			ret = addLocalized.apply(_this, newArgs);
 		}
 		return ret;
+	}
+
+	schema.methods.toJSONLocalized = function() {
+		return guessMorphAndApply(this, arguments, [true, false]);
 	};
 
-	schema.methods.toObjectLocalizedOnly = function(obj, locale, localeDefault) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localizeOnly(obj, locale, localeDefault, false);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localizeOnly(this, obj, locale, false);
-		}
-		return ret;
+	schema.methods.toObjectLocalized = function() {
+		return guessMorphAndApply(this, arguments, [false, false]);
+	};
+
+	schema.methods.toJSONLocalizedOnly = function() {
+		return guessMorphAndApply(this, arguments, [true, true]);
+	};
+
+	schema.methods.toObjectLocalizedOnly = function() {
+		return guessMorphAndApply(this, arguments, [false, true]);
 	};
 };
