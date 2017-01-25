@@ -105,8 +105,11 @@ module.exports = function(schema, options) {
 		return _obj;
 	}
 
-	function guessMorphAndApply(_this, args, extra) {
+	function guessMorphAndApply(_this, args, extra, methodNAme) {
 		var newArgs=[], argsNum = 3, target = args[0], ret;
+		if (typeof args[0] !== 'string' || typeof args[1] !== 'string') {
+			throw new Error('mongoose-i18n-localize: '+methodNAme+'(): no locale name argument specified!')
+		}
 		if (typeof args[0] === 'string' && _this.hasOwnProperty('isNew')) {
 			newArgs.push(target = _this);
 			argsNum = 2;
@@ -128,18 +131,18 @@ module.exports = function(schema, options) {
 	}
 
 	schema.methods.toJSONLocalized = function() {
-		return guessMorphAndApply(this, arguments, [true, false]);
+		return guessMorphAndApply(this, arguments, [true, false], 'toJSONLocalized');
 	};
 
 	schema.methods.toObjectLocalized = function() {
-		return guessMorphAndApply(this, arguments, [false, false]);
+		return guessMorphAndApply(this, arguments, [false, false], 'toObjectLocalized');
 	};
 
 	schema.methods.toJSONLocalizedOnly = function() {
-		return guessMorphAndApply(this, arguments, [true, true]);
+		return guessMorphAndApply(this, arguments, [true, true], 'toJSONLocalizedOnly');
 	};
 
 	schema.methods.toObjectLocalizedOnly = function() {
-		return guessMorphAndApply(this, arguments, [false, true]);
+		return guessMorphAndApply(this, arguments, [false, true], 'toObjectLocalizedOnly');
 	};
 };
