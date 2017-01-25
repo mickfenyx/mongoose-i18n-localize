@@ -111,7 +111,7 @@ module.exports = function(schema, options) {
 		} else if (typeof args[1] === 'string') {
 			localeName = args[1];
 		}
-		if (!localeName || options_locales.indexOf(localeName) === -1) {
+		if (!localeName) {
 			throw new Error('mongoose-i18n-localize: '+methodNAme+'(): no valid locale name argument specified!')
 		}
 		if (localeName && _this.hasOwnProperty('isNew')) {
