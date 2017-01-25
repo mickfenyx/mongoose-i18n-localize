@@ -51,7 +51,6 @@ module.exports = function(schema, options) {
 					var i18nCapsulePath = (prePath+(prePath&&'.')+schemaPath).replace(i18nCapsulePathMask, '$1');
 					if (i18nPathCapsules.indexOf(i18nCapsulePath) === -1) {
 						i18nPathCapsules.push(i18nCapsulePath);
-						break;
 					}
 				}
 			}
@@ -106,11 +105,16 @@ module.exports = function(schema, options) {
 	}
 
 	function guessMorphAndApply(_this, args, extra, methodNAme) {
-		var newArgs=[], argsNum = 3, target = args[0], ret;
-		if (typeof args[0] !== 'string' || typeof args[1] !== 'string') {
-			throw new Error('mongoose-i18n-localize: '+methodNAme+'(): no locale name argument specified!')
+		var newArgs=[], argsNum = 3, target = args[0], ret, localeName;
+		if (typeof args[0] === 'string') {
+			localeName = args[0];
+		} else if (typeof args[1] === 'string') {
+			localeName = args[1];
 		}
-		if (typeof args[0] === 'string' && _this.hasOwnProperty('isNew')) {
+		if (!localeName || options_locales.indexOf(localeName) === -1) {
+			throw new Error('mongoose-i18n-localize: '+methodNAme+'(): no valid locale name argument specified!')
+		}
+		if (localeName && _this.hasOwnProperty('isNew')) {
 			newArgs.push(target = _this);
 			argsNum = 2;
 		}
