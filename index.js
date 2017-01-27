@@ -60,12 +60,14 @@ module.exports = function(schema, options) {
 
 	function localyzeCapsule(obj, slug, locale, localeDefault, only) {
 		var val, defVal;
-		locale && (val = obj[slug][locale]);
-		localeDefault && (defVal = obj[slug][localeDefault]);
-		if (only) {
-			obj[slug] = val || defVal;
-		} else {
-			obj[slug].localized = val || defVal;
+		if (obj[slug]) {
+			locale && (val = obj[slug][locale]);
+			localeDefault && (defVal = obj[slug][localeDefault]);
+			if (only) {
+				obj[slug] = val || defVal;
+			} else {
+				obj[slug].localized = val || defVal;
+			}
 		}
 	}
 
