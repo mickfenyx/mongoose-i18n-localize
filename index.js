@@ -12,7 +12,7 @@ module.exports = function(schema, options) {
 		var instance = schema.paths[pathname].instance,
 			config = schema.paths[pathname].options
 		;
-		if (config.i18n && instance === 'String') {
+		if (config.i18n && instance === 'String' || instance === 'Date') {
 			delete(config.i18n);
 			config._i18n = true;
 			schema.remove(pathname);
