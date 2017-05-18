@@ -24,6 +24,7 @@
   },
   "main": "index.js",
   "scripts": {
+    "jshint": "jshint --verbose .",
     "test": "mocha test",
     "test-ci": "npm run jshint && istanbul cover ./node_modules/mocha/bin/_mocha"
   },
