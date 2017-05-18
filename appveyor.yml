@@ -10,7 +10,6 @@ branches:
   only:
     - master
 install:
-  - "npm install -g jshint"
   - "npm install -g istanbul"
   - "npm install"
 build: off
