@@ -7,12 +7,15 @@ function ArrNoDupe(a) {
     return r;
 }
 module.exports = function(schema, options) {
-	var options_locales = ArrNoDupe((options||{}).locales||[]);
+	options = options||{};
+	var options_locales = ArrNoDupe(options.locales||[]),
+		options_defaultLocale = options.defaultLocale
+	;
 	function addLocales(pathname, schema) {
 		var instance = schema.paths[pathname].instance,
 			config = schema.paths[pathname].options
 		;
-		if (config.i18n && instance === 'String' || instance === 'Date') {
+		if ( config.i18n && typeof instance === 'string' && instance.match(/^(String|Number|Boolean|Date)$/i) ) {
 			delete(config.i18n);
 			config._i18n = true;
 			schema.remove(pathname);
@@ -38,6 +41,9 @@ module.exports = function(schema, options) {
 
 	if (options_locales.length > 0) {
 		recursiveIteration(schema);
+		if (!options_defaultLocale || options_locales.indexOf(options_defaultLocale)===-1) {
+			options_defaultLocale = options_locales[0];
+		}
 	}
 
 	function getI18nCapsulePaths(prePath, schema) {
@@ -58,38 +64,39 @@ module.exports = function(schema, options) {
 		return i18nPathCapsules;
 	}
 
-	function localyzeCapsule(obj, slug, locale, localeDefault, only) {
+	function localyzeCapsule(obj, slug, locale, defaultLocale, only) {
 		var val, defVal;
 		if (obj[slug]) {
 			locale && (val = obj[slug][locale]);
-			localeDefault && (defVal = obj[slug][localeDefault]);
+			defVal = defaultLocale ? obj[slug][defaultLocale] : obj[slug][options_defaultLocale];
+			val = (typeof val !== 'undefined') ? val : defVal;
 			if (only) {
-				obj[slug] = val || defVal;
+				obj[slug] = val;
 			} else {
-				obj[slug].localized = val || defVal;
+				obj[slug].localized = val;
 			}
 		}
 	}
 
-	function localyzeRecursive(obj, i18nCapsulePathArr, locale, localeDefault, only) {
+	function localyzeRecursive(obj, i18nCapsulePathArr, locale, defaultLocale, only) {
 		var thisSubObjPath = i18nCapsulePathArr[0],
 			thisSubObj = obj[thisSubObjPath]
 		;
 		if (i18nCapsulePathArr.length === 1) {
 			if (obj instanceof Array) {
 				obj.map(function (i) {
-					localyzeCapsule(i, thisSubObjPath, locale, localeDefault, only);
+					localyzeCapsule(i, thisSubObjPath, locale, defaultLocale, only);
 				});
 			} else {
-				localyzeCapsule(obj, thisSubObjPath, locale, localeDefault, only);
+				localyzeCapsule(obj, thisSubObjPath, locale, defaultLocale, only);
 			}
 		} else if (i18nCapsulePathArr.length > 1) {
 			if (thisSubObj instanceof Array) {
 				thisSubObj.map(function (i) {
-					localyzeRecursive(i, i18nCapsulePathArr.slice(1), locale, localeDefault, only);
+					localyzeRecursive(i, i18nCapsulePathArr.slice(1), locale, defaultLocale, only);
 				});
 			} else {
-				localyzeRecursive(thisSubObj, i18nCapsulePathArr.slice(1), locale, localeDefault, only);
+				localyzeRecursive(thisSubObj, i18nCapsulePathArr.slice(1), locale, defaultLocale, only);
 			}
 		}
 	}
@@ -107,26 +114,27 @@ module.exports = function(schema, options) {
 	}
 
 	function guessMorphAndApply(_this, args, extra, methodNAme) {
-		var newArgs=[], argsNum = 3, target = args[0], ret, localeName;
+		var newArgs=[], i = 0, target = args[0], ret, localeName;
 		if (typeof args[0] === 'string') {
 			localeName = args[0];
 		} else if (typeof args[1] === 'string') {
 			localeName = args[1];
 		}
 		if (!localeName) {
-			throw new Error('mongoose-i18n-localize: '+methodNAme+'(): no valid locale name argument specified!')
+			localeName = options_defaultLocale;
 		}
 		if (localeName && _this.hasOwnProperty('isNew')) {
 			newArgs.push(target = _this);
-			argsNum = 2;
+			i = 1;
 		}
-		for (var i = 0; i < argsNum; i++) {
+		for (i; i < 3; i++) {
 			newArgs.push(args[i]);
 		}
-		(extra||[]).forEach(function(i) {
-			newArgs.push(i);
+		(extra||[]).forEach(function(ii) {
+			newArgs.push(ii);
 		});
 		if (target instanceof Array) {
+			if (newArgs.length !== 5) {throw new Error('addLocalized() expects 5 arguments! Given '+newArgs.length);}
 			ret = target.map(function(object) {
 				return addLocalized.apply(_this, newArgs);
 			});

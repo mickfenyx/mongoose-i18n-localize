@@ -24,7 +24,8 @@ var schema = new mongoose.Schema({
 });
 
 schema.plugin(mongooseI18n, {
-	locales: ['en', 'de']
+	locales: ['en', 'de'],
+	defaultLocale: 'de' // if not specified or invalid - will assume locales[0]
 });
 
 var Model = mongoose.model('Name', schema);
@@ -43,7 +44,9 @@ This will create a structure like:
 
 All validators of `name` get also assigned to `name.en` and `name.de`.
 
-mongoose-i18n-localize adds the methods `toObjectLocalized(resource, locale)` and `toJSONLocalized(resource, locale)` to the i18n schema methods. To set the locale of a resource to `en`, just do:
+Currently these field types (or an Array of these) support i18n: `String`, `Number`, `Boolean`, `Date`.
+
+mongoose-i18n-localize adds the methods `toObjectLocalized()` and `toJSONLocalized()` to the i18n schema methods. To set the locale of a resource to `en`, just do:
 
 
 ```js
@@ -74,9 +77,42 @@ Model.find(function(err, resources) {
 
 Use `toObjectLocalized` or `toJSONLocalized` according to `toObject` or `toJSON`.
 
-If you only want to show only one locale message use the methods
-`toObjectLocalizedOnly(resource, locale, localeDefault)` or
-`toJSONLocalizedOnly(resource, locale, localeDefault)`.
+If you want the fields to assume only the localized values use the methods
+`toObjectLocalizedOnly()` or
+`toJSONLocalizedOnly()`.
+
+
+```js
+Model.find(function(err, resources) {
+	var localizedResources = resources.toJSONLocalizedOnly('de');
+});
+
+```
+
+`localizedResources` has now the following structure:
+
+```js
+[
+	{
+		name: 'hallo'
+	}
+]
+```
+
+All methods accept 3 optional arguments:
+ 1. ``resource`` (Object) - document(s) to localize
+ 2. ``localeName`` (String) - target locale to populate ``.localized`` subfield(in case of ``.toObjectLocalized(), .toJSONLocalized()``) or the field itself (``.toObjectLocalizedOnly(), .toJSONLocalizedOnly()``). Will use ``options.defaultLocale`` if omitted.
+ 3. ``defaultLocaleName`` (String) - locale to fallback, if the value for ``localeName`` is ``undefined``. Will also use ``options.defaultLocale`` if omitted.
+
+ ```js
+Model.find(function(err, resources) {
+	var localizedResources;
+	localizedResources = resources.toJSONLocalized();
+	localizedResources = resources.toJSONLocalizedOnly('de');
+	localizedResources = resources.toObjectLocalized(resources, 'de', 'en');
+	localizedResources = resources.toObjectLocalizedOnly('de', 'en');
+});
+```
 
 # Tests
 

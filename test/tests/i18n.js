@@ -122,41 +122,113 @@ module.exports = function() {
 
 		it('should store i18n fields', function(done) {
 			var Model = mongoose.model('I18nSchema', helper.createI18nSchema().plugin(mongooseI18n, {
-				locales: ['en', 'de']
-			}));
-
-			var model = new Model({
-				name: {
-					en: 'hello',
-					de: 'hallo',
-					fr: 'bonjour'
+					locales: ['en', 'de']
+				})),
+				locales = {
+					en: true,
+					de: true,
+					fr: false
+				},
+				data = {
+					name: {
+						en: 'hello',
+						de: 'hallo',
+						fr: 'bonjour'
+					},
+					date: {
+						en: new Date(2000, 1),
+						de: new Date(2000, 2),
+						fr: new Date(2000, 3)
+					},
+					number: {
+						en: 1,
+						de: 2,
+						fr: 3
+					},
+					bool: {
+						en: true,
+						de: false,
+						fr: true
+					}
+				},
+				doc = new Model(data),
+				formattedDocs = {
+					toJSONLocalized: { locale: 'de', data: doc.toJSONLocalized(doc, 'de') },
+					toJSONLocalizedOnly: { locale: 'de', only: true, data: doc.toJSONLocalizedOnly(doc, 'de') },
+					toObjectLocalized: { locale: 'en', data: doc.toObjectLocalized(doc, 'en') },
+					toObjectLocalizedOnly: { locale: 'en', only: true, data: doc.toObjectLocalizedOnly(doc, 'en') },
 				}
-			});
+			;
 
-			model.name.en.should.equal('hello');
-			model.name.de.should.equal('hallo');
-			should.not.exist(model.name.fr);
+			for (var field in data) {
+				if (data.hasOwnProperty(field)) {
+					var el = data[field],
+						localeName, method, methodData, methodLocaleName
+					;
+					for (localeName in locales) {
+						if (locales.hasOwnProperty(localeName)) {
+							var exists = locales[localeName];
+							if (exists) {
+								doc[field][localeName].toString().should.equal(el[localeName].toString(), 'document.'+field+'.'+localeName+' should be equal '+el[localeName].toString());
+								for (method in formattedDocs) {
+									if (formattedDocs.hasOwnProperty(method)) {
+										if (!formattedDocs[method].only) {
+											formattedDocs[method].data[field][localeName].toString().should.equal(el[localeName].toString(), 'document.'+method+'().'+field+'.'+localeName+' should be equal '+el[localeName].toString());
+										}
+									}
+								}
+							} else {
+								should.not.exist(doc[field][localeName], 'document.'+field+'.'+localeName+' shouldn\'t exist, got '+el.fr);
+							}
+							
+						}
+					}
+					for (method in formattedDocs) {
+						if (formattedDocs.hasOwnProperty(method)) {
+							methodLocaleName = formattedDocs[method].locale;
+							methodData = formattedDocs[method].only ? formattedDocs[method].data[field] : formattedDocs[method].data[field].localized;
+							methodData.toString().should.equal(el[methodLocaleName].toString(), 'document.'+method+'().'+field+'.'+methodLocaleName+(formattedDocs[method].only?'':'.localized')+' should be equal '+el[methodLocaleName].toString());
+						}
+					}
+				}
+			}
 
-			var json = Model.schema.methods.toJSONLocalized(model, 'de');
-			json.name.en.should.equal('hello');
-			json.name.de.should.equal('hallo');
-			json.name.localized.should.equal('hallo');
+			done();
+		});
 
-			json = Model.schema.methods.toJSONLocalized(model, 'fr');
-			json.name.en.should.equal('hello');
-			json.name.de.should.equal('hallo');
-			should.not.exist(json.name.localized);
-
-			var obj = Model.schema.methods.toObjectLocalized(model, 'en');
-			obj.name.en.should.equal('hello');
-			obj.name.de.should.equal('hallo');
-			obj.name.localized.should.equal('hello');
-
-			obj = Model.schema.methods.toObjectLocalized(model, 'fr');
-			obj.name.en.should.equal('hello');
-			obj.name.de.should.equal('hallo');
-			should.not.exist(obj.name.localized);
-
+		it('should understand different method morhology', function(done) {
+			var Model = mongoose.model('I18nSchema', helper.createI18nSchema().plugin(mongooseI18n, {
+					locales: ['en', 'de']
+				})),
+				data = {
+					name: {
+						en: 'hello',
+						de: 'hallo',
+						fr: 'bonjour'
+					}
+				},
+				doc = new Model(data),
+				methods = {
+					toJSONLocalized: { only: false },
+					toJSONLocalizedOnly: { only: true },
+					toObjectLocalized: { only: false },
+					toObjectLocalizedOnly: { only: true },
+				}
+			;
+			for (var method in methods) {
+				if (methods.hasOwnProperty(method)) {
+					var methodOpts = methods[method],
+						formattedDocs = [doc[method](), doc[method]('en'), doc[method]('fr', 'en'), doc[method]('fr'), doc[method](doc), doc[method](doc, 'en'), doc[method](doc, 'fr', 'en')]
+					;
+					formattedDocs.forEach(function(formattedDoc) {
+						if (methodOpts.only) {
+							formattedDoc.name.should.equal(data.name.en);
+						} else {
+							formattedDoc.name.localized.should.equal(data.name.en);
+						}						
+					}, this);
+				}
+			}
 			done();
 		});
 
