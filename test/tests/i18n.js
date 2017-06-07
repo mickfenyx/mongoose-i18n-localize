@@ -196,7 +196,7 @@ module.exports = function() {
 			done();
 		});
 
-		it('should understand different method morhology', function(done) {
+		it('should understand different method morphology', function(done) {
 			var Model = mongoose.model('I18nSchema', helper.createI18nSchema().plugin(mongooseI18n, {
 					locales: ['en', 'de']
 				})),
