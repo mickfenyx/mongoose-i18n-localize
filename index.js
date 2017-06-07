@@ -90,7 +90,7 @@ module.exports = function(schema, options) {
 			} else {
 				localyzeCapsule(obj, thisSubObjPath, locale, defaultLocale, only);
 			}
-		} else if (i18nCapsulePathArr.length > 1) {
+		} else if (thisSubObj && i18nCapsulePathArr.length > 1) {
 			if (thisSubObj instanceof Array) {
 				thisSubObj.map(function (i) {
 					localyzeRecursive(i, i18nCapsulePathArr.slice(1), locale, defaultLocale, only);
