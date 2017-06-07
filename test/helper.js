@@ -49,6 +49,21 @@ module.exports = {
 		});
 	},
 
+	createI18nNestedObjectSchemaWithMultipleFields: function() {
+		return new mongoose.Schema({
+			nested: {
+				name: {
+					type: String,
+					i18n: true
+				}
+			},
+			name: {
+				type: String,
+				i18n: true
+			}
+		});
+	},
+
 	createI18nNestedArraySchema: function() {
 		return new mongoose.Schema({
 			nested: [{

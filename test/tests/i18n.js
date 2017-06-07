@@ -262,6 +262,34 @@ module.exports = function() {
 			done();
 		});
 
+		it('should store i18n fields with empty nested objects', function(done) {
+			var Model = mongoose.model('I18nNestedObjectSchema', helper.createI18nNestedObjectSchemaWithMultipleFields().plugin(mongooseI18n, {
+				locales: ['en', 'de']
+			}));
+
+			var model = new Model({
+				name: {
+					en: 'hello',
+					de: 'hallo'
+				}
+			});
+
+			model.name.en.should.equal('hello');
+			model.name.de.should.equal('hallo');
+
+			var json = Model.schema.methods.toJSONLocalized(model, 'de');
+			json.name.en.should.equal('hello');
+			json.name.de.should.equal('hallo');
+			json.name.localized.should.equal('hallo');
+
+			var obj = Model.schema.methods.toObjectLocalized(model, 'en');
+			obj.name.en.should.equal('hello');
+			obj.name.de.should.equal('hallo');
+			obj.name.localized.should.equal('hello');
+
+			done();
+		});
+
 		it('should store i18n fields in nested array', function(done) {
 			var Model = mongoose.model('I18nNestedArraySchema', helper.createI18nNestedArraySchema().plugin(mongooseI18n, {
 				locales: ['en', 'de']
