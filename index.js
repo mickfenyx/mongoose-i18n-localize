@@ -9,9 +9,10 @@ function ArrNoDupe(a) {
 module.exports = function(schema, options) {
 	options = options||{};
 	var options_locales = ArrNoDupe(options.locales||[]),
-		options_defaultLocale = options.defaultLocale
+		options_defaultLocale = options.defaultLocale,
+		_i18n_paths = []
 	;
-	function addLocales(pathname, schema) {
+	function addLocales(prePath, pathname, schema) {
 		var instance = schema.paths[pathname].instance,
 			config = schema.paths[pathname].options
 		;
@@ -19,6 +20,7 @@ module.exports = function(schema, options) {
 			delete(config.i18n);
 			config._i18n = true;
 			schema.remove(pathname);
+			_i18n_paths.push(prePath+(prePath&&'.')+pathname);
 
 			options_locales.forEach(function(locale) {
 				schema.path(pathname + '.' + locale, config);
@@ -26,25 +28,26 @@ module.exports = function(schema, options) {
 		}
 	}
 
-	function recursiveIteration(schema) {
+	function recursiveIteration(prePath, schema) {
 		for (var key in schema.paths) {
 			if (schema.paths.hasOwnProperty(key)) {
 				var sPath = schema.paths[key];
 				if (sPath.schema) {
-					recursiveIteration(sPath.schema);
+					recursiveIteration(prePath+(prePath&&'.')+key, sPath.schema);
 				} else {
-					addLocales(sPath.path, schema);
+					addLocales(prePath, sPath.path, schema);
 				}
 			}
 		}
 	}
 
 	if (options_locales.length > 0) {
-		recursiveIteration(schema);
+		recursiveIteration('', schema);
 		if (!options_defaultLocale || options_locales.indexOf(options_defaultLocale)===-1) {
 			options_defaultLocale = options_locales[0];
 		}
 	}
+	schema.set('_i18n_paths', _i18n_paths);
 
 	function getI18nCapsulePaths(prePath, schema) {
 		var i18nPathCapsules = [], i18nCapsulePathMask = /^(.*)\.[^\.]*$/;
@@ -101,45 +104,51 @@ module.exports = function(schema, options) {
 		}
 	}
 
-	function addLocalized(obj, locale, localeDefault, toJSON, only) {
-		var _obj = toJSON ? obj.toJSON() : obj.toObject(),
-			i18nCapsulePaths = getI18nCapsulePaths('', obj.schema) || [],
-			val, defVal
+	function addLocalized(o) {
+		var _obj = o.toJSON ? o.obj.toJSON() : o.obj.toObject(),
+			val, defVal , _i18n_paths = getI18nCapsulePaths('', o.obj.schema) || []
 		;
-		i18nCapsulePaths.forEach(function(i18nCapsulePath) {
+		_i18n_paths.forEach(function(i18nCapsulePath) {
 			var i18nCapsulePathArr = i18nCapsulePath.split('.');
-			localyzeRecursive(_obj, i18nCapsulePathArr, locale, localeDefault, only);
+			localyzeRecursive(_obj, i18nCapsulePathArr, o.locale, o.localeDefault, o.only);
 		});
 		return _obj;
 	}
 
 	function guessMorphAndApply(_this, args, extra, methodNAme) {
-		var newArgs=[], i = 0, target = args[0], ret, localeName;
+		var o={}, target, ret;
 		if (typeof args[0] === 'string') {
-			localeName = args[0];
-		} else if (typeof args[1] === 'string') {
-			localeName = args[1];
+			o.locale = args[0];
+		} else if (args[0] && args[0].hasOwnProperty('isNew')) {
+			target = args[0];
 		}
-		if (!localeName) {
-			localeName = options_defaultLocale;
+		if (!o.locale && typeof args[1] === 'string') {
+			o.locale = args[1];
+		} else if (o.locale && typeof args[1] === 'string') {
+			o.localeDefault = args[1];
 		}
-		if (localeName && _this.hasOwnProperty('isNew')) {
-			newArgs.push(target = _this);
-			i = 1;
+		if (target && typeof args[2] === 'string') {
+			o.localeDefault = args[2];
 		}
-		for (i; i < 3; i++) {
-			newArgs.push(args[i]);
+		if (!target && _this.hasOwnProperty('isNew')) {
+			target = _this;
 		}
-		(extra||[]).forEach(function(ii) {
-			newArgs.push(ii);
-		});
+		if (!o.localeDefault) {
+			o.localeDefault = options_defaultLocale;
+		}
+		if (!o.locale) {
+			o.locale = options_defaultLocale;
+		}
+		o.toJSON = extra[0];
+		o.only = extra[1];
 		if (target instanceof Array) {
-			if (newArgs.length !== 5) {throw new Error('addLocalized() expects 5 arguments! Given '+newArgs.length);}
-			ret = target.map(function(object) {
-				return addLocalized.apply(_this, newArgs);
+			ret = target.map(function(subTarget) {
+				o.obj = subTarget;
+				return addLocalized(o);
 			});
 		} else {
-			ret = addLocalized.apply(_this, newArgs);
+			o.obj = target;
+			ret = addLocalized(o);
 		}
 		return ret;
 	}
@@ -159,4 +168,5 @@ module.exports = function(schema, options) {
 	schema.methods.toObjectLocalizedOnly = function() {
 		return guessMorphAndApply(this, arguments, [false, true], 'toObjectLocalizedOnly');
 	};
+
 };
