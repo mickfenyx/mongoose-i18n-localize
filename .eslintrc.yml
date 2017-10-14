@@ -1,10 +1,13 @@
-ecmaFeatures:
-  modules: true
-  jsx: true
-
 env:
   es6: true
   node: true
+
+parserOptions:
+  sourceType: "module"
+  ecmaVersion: 6
+
+ecmaFeatures:
+  jsx: true
 
 # http://eslint.org/docs/rules/
 rules:
@@ -54,7 +57,7 @@ rules:
   no-case-declarations: 2
   no-div-regex: 2
   no-else-return: 0
-  no-empty-label: 2
+  no-labels: [ "error", { "allowLoop": true } ]
   no-empty-pattern: 2
   no-eq-null: 2
   no-eval: 2
@@ -178,13 +181,13 @@ rules:
   semi-spacing: 0
   semi: 0
   sort-vars: 0
-  space-after-keywords: 0
+  keyword-spacing: [ "off", { "after": false } ]
   space-before-blocks: 0
   space-before-function-paren: 0
-  space-before-keywords: 0
+  keyword-spacing: [ "off", { "before": false } ]
   space-in-parens: 0
   space-infix-ops: 0
-  space-return-throw-case: 0
+  keyword-spacing: [ "off", { "after": true } ]
   space-unary-ops: 0
   spaced-comment: 0
   wrap-regex: 0
@@ -195,7 +198,8 @@ rules:
   arrow-spacing: 0
   constructor-super: 0
   generator-star-spacing: 0
-  no-arrow-condition: 0
+  no-confusing-arrow: "off"
+  no-constant-condition": [ "off", { "checkLoops": false } ]
   no-class-assign: 0
   no-const-assign: 0
   no-dupe-class-members: 0

@@ -1,5 +1,5 @@
-version: "2"
-engines: 
+---
+plugins: 
   eslint:
     enabled: true
   duplication:
@@ -9,9 +9,6 @@ engines:
       - javascript
   fixme:
     enabled: true
-ratings:
-   paths:
-   - "index.js"
 exclude_patterns:
 - "**/**.*"
 - "**/**"
