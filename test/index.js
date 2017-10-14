@@ -11,9 +11,9 @@ before(function name(done) {
 	mongoose.connection.on('connected', function() {
 		this.dropDatabase().then(function () {
 			done();
-		})
+		});
 	});
-})
+});
 
 describe('Mongoose I18n Localize', function() {
 	require('./tests/i18n')();
