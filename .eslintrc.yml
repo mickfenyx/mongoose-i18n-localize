@@ -180,13 +180,12 @@ rules:
   semi-spacing: 0
   semi: 0
   sort-vars: 0
-  keyword-spacing: [ "off", { "after": false } ]
+  keyword-spacing: [ "off", { "after": false, "before": false} ]
   space-before-blocks: 0
   space-before-function-paren: 0
-  keyword-spacing: [ "off", { "before": false } ]
   space-in-parens: 0
   space-infix-ops: 0
-  keyword-spacing: [ "off", { "after": true } ]
+  space-return-throw-case: 0
   space-unary-ops: 0
   spaced-comment: 0
   wrap-regex: 0
