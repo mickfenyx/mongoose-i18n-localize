@@ -5,9 +5,8 @@ env:
 parserOptions:
   sourceType: "module"
   ecmaVersion: 6
-
-ecmaFeatures:
-  jsx: true
+  ecmaFeatures:
+    jsx: true
 
 # http://eslint.org/docs/rules/
 rules:
@@ -185,7 +184,6 @@ rules:
   space-before-function-paren: 0
   space-in-parens: 0
   space-infix-ops: 0
-  space-return-throw-case: 0
   space-unary-ops: 0
   spaced-comment: 0
   wrap-regex: 0

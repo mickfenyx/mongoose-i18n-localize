@@ -30,7 +30,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "istanbul cover ./node_modules/mocha/bin/_mocha"
+    "test": "mocha test",
+    "test-ci": "istanbul cover ./node_modules/mocha/bin/_mocha"
   },
   "devDependencies": {
     "mongoose": "^4.12.2",
