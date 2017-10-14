@@ -7,5 +7,6 @@ checks:
     config:
       threshold: 30
 exclude_patterns:
-- "**.*"
 - "!index.js"
+- "**/**.*"
+- "**/**"
