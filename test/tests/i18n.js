@@ -417,37 +417,6 @@ module.exports = function() {
 			done();
 		});
 
-	    it('should work on document array', function (done) {
-			var Model = mongoose.model('I18nSchema', helper.createI18nSchema().plugin(mongooseI18n, {
-				locales: ['en', 'de']
-			})), doc1, doc2
-			;
-			doc1 = new Model({
-				name: { en: 'hello', de: 'hallo' },
-				date: { en: new Date(2000, 1), de: new Date(2000, 2) },
-				number: { en: 1, de: 2 },
-				bool: { en: true, de: false }
-			});
-			doc2 = new Model({
-				name: { en: 'bye', de: 'tschüss' },
-				date: { en: new Date(3000, 1), de: new Date(3000, 2) },
-				number: { en: 3, de: 4 },
-				bool: { en: false, de: true }
-			});
-			doc1
-			.save()
-			.then(function (dbDoc1) {
-				return doc2.save();
-			})
-			.then(function (dbDoc2) {
-				return Model.find({});
-			})
-			.then(function (docs) {
-
-				done();
-			})
-			.catch(done);
-		});
 	});
 
 };

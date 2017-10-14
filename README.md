@@ -1,4 +1,8 @@
 # mongoose-i18n-localize
+[![Build Status](https://travis-ci.org/Spown/mongoose-i18n-localize.svg?branch=master)](https://travis-ci.org/Spown/mongoose-i18n-localize)
+[![Maintainability](https://api.codeclimate.com/v1/badges/c57a9b2238b246cd9d3a/maintainability)](https://codeclimate.com/github/Spown/mongoose-i18n-localize/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/c57a9b2238b246cd9d3a/test_coverage)](https://codeclimate.com/github/Spown/mongoose-i18n-localize/test_coverage)
+[![devDependencies Status](https://david-dm.org/Spown/mongoose-i18n-localize/dev-status.png)](https://david-dm.org/Spown/mongoose-i18n-localize?type=dev)
 
 mongoose-i18n-localize is a mongoose plugin to support i18n and localization in your mongoose schemas.
 
