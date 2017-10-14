@@ -4,6 +4,11 @@ mongoose-i18n-localize is a mongoose plugin to support i18n and localization in 
 
 It seems like [mongoose-i18n](https://github.com/elrolito/mongoose-i18n) is not longer supported and I didn't get it to work on my machine, so I decided to write my own version.
 
+## Requirements
+
+ - Node >= 4.0.0
+ - Mongoose >= 4.12.2
+
 ## Usage
 
 ```

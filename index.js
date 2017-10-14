@@ -43,7 +43,7 @@ module.exports = function(schema, options) {
 
 	if (options_locales.length > 0) {
 		recursiveIteration('', schema);
-		if (!options_defaultLocale || options_locales.indexOf(options_defaultLocale)===-1) {
+		if ( !~options_locales.indexOf(options_defaultLocale)) {
 			options_defaultLocale = options_locales[0];
 		}
 	}
@@ -54,7 +54,9 @@ module.exports = function(schema, options) {
 		for (var schemaPath in schema.paths) {
 			if (schema.paths.hasOwnProperty(schemaPath)) {
 				var schemaField = schema.paths[schemaPath];
-				if (schema.childSchemas.indexOf(schemaField.schema) !== -1) {
+				if (schema.childSchemas.find(function(modSch) {
+					return modSch.schema === schemaField.schema;
+				})) {
 					i18nPathCapsules = i18nPathCapsules.concat(getI18nCapsulePaths(prePath+(prePath&&'.')+schemaPath, schemaField.schema));
 				} else if (schemaField.options._i18n) {
 					var i18nCapsulePath = (prePath+(prePath&&'.')+schemaPath).replace(i18nCapsulePathMask, '$1');

@@ -12,6 +12,45 @@ module.exports = function() {
 
 	describe('Configuration', function() {
 		afterEach(helper.afterEach);
+
+
+		it('should define defaultLocale from locales', function(done) {
+			var Model = mongoose.model('I18nSchema', helper.createI18nSchema().plugin(mongooseI18n, {
+					locales: ['en', 'de'],
+					defaultLocale: 'fr'
+				})),
+				data = {
+					name: {
+						en: 'hello',
+						de: 'hallo',
+						fr: 'bonjour'
+					}
+				},
+				doc = new Model(data),
+				methods = {
+					toJSONLocalized: { only: false },
+					toJSONLocalizedOnly: { only: true },
+					toObjectLocalized: { only: false },
+					toObjectLocalizedOnly: { only: true },
+				}
+			;
+			for (var method in methods) {
+				if (methods.hasOwnProperty(method)) {
+					var methodOpts = methods[method],
+						formattedDocs = [doc[method](), doc[method]('en'), doc[method]('fr', 'en'), doc[method]('fr'), doc[method](doc), doc[method](doc, 'en'), doc[method](doc, 'fr', 'en')]
+					;
+					formattedDocs.forEach(function(formattedDoc) {
+						if (methodOpts.only) {
+							formattedDoc.name.should.equal(data.name.en);
+						} else {
+							formattedDoc.name.localized.should.equal(data.name.en);
+						}						
+					}, this);
+				}
+			}
+			done();
+		});
+
 		it('should store i18n fields in nested schema', function(done) {
 			var Model = mongoose.model('I18nNestedSchema', helper.createI18nNestedSchema().plugin(mongooseI18n));
 
@@ -30,7 +69,7 @@ module.exports = function() {
 			var json = Model.schema.methods.toJSONLocalized(model, 'de');
 			json.nested.name.en.should.equal('hello');
 			json.nested.name.de.should.equal('hallo');
-			json.nested.name.localized.should.equal('hallo');
+			should.equal(json.nested.name.localized, 'hallo');
 
 			var obj = Model.schema.methods.toObjectLocalized(model, 'en');
 			obj.nested.name.en.should.equal('hello');
@@ -376,6 +415,38 @@ module.exports = function() {
 			obj.nested[0].nested[1].name.localized.should.equal('bye');
 
 			done();
+		});
+
+	    it('should work on document array', function (done) {
+			var Model = mongoose.model('I18nSchema', helper.createI18nSchema().plugin(mongooseI18n, {
+				locales: ['en', 'de']
+			})), doc1, doc2
+			;
+			doc1 = new Model({
+				name: { en: 'hello', de: 'hallo' },
+				date: { en: new Date(2000, 1), de: new Date(2000, 2) },
+				number: { en: 1, de: 2 },
+				bool: { en: true, de: false }
+			});
+			doc2 = new Model({
+				name: { en: 'bye', de: 'tschüss' },
+				date: { en: new Date(3000, 1), de: new Date(3000, 2) },
+				number: { en: 3, de: 4 },
+				bool: { en: false, de: true }
+			});
+			doc1
+			.save()
+			.then(function (dbDoc1) {
+				return doc2.save();
+			})
+			.then(function (dbDoc2) {
+				return Model.find({});
+			})
+			.then(function (docs) {
+
+				done();
+			})
+			.catch(done);
 		});
 	});
 
