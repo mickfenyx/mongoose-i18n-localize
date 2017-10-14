@@ -4,7 +4,7 @@
 var mongoose = require('mongoose');
 
 before(function name(done) {
-	mongoose.connect('mongodb://localhost/mongoose-i18n-localize');
+	mongoose.connect('mongodb://localhost/mongoose-i18n-localize', {useMongoClient: true});
 	mongoose.connection.on('error', function() {
 		done(new Error('Unable to connect to database.'));
 	});

@@ -33,6 +33,6 @@
   "devDependencies": {
     "mocha": "^3.5.3",
     "mongoose": "^4.12.2",
-    "should": "^11"
+    "should": "^13.1.2"
   }
 }
