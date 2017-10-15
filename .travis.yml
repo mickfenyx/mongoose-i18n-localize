@@ -13,8 +13,8 @@ branches:
 #   - "npm install -g istanbul"
 script:
   - "npm run test-ci"
-# after_script:
-#   - "npm install -g coveralls"
-#   - "cat ./coverage/lcov.info | coveralls"
+after_script:
+  - "npm install -g coveralls"
+  - "cat ./coverage/lcov.info | coveralls"
 after_success:
   - codeclimate-test-reporter < ./coverage/lcov.info

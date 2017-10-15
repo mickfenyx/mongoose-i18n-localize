@@ -1,6 +1,15 @@
 /* jshint node: true */
 'use strict';
 
+function forIn(obj, callb) {
+	for (var k in obj) {
+		if (obj.hasOwnProperty(k)) {
+			var e = obj[k];
+			callb(e, k);
+		}
+	}
+}
+
 function ArrNoDupe(a) {
 	var temp = {},
 		r = [],
@@ -46,22 +55,20 @@ function recursiveIteration(prePath, schema, options_locales) {
 
 function getI18nCapsulePaths(prePath, schema) {
 	var i18nPathCapsules = [],
-		i18nCapsulePathMask = /^(.*)\.[^\.]*$/;
-	for (var schemaPath in schema.paths) {
-		if (schema.paths.hasOwnProperty(schemaPath)) {
-			var schemaField = schema.paths[schemaPath];
-			if (schema.childSchemas.find(function (modSch) {
-					return modSch.schema === schemaField.schema;
-				})) {
-				i18nPathCapsules = i18nPathCapsules.concat(getI18nCapsulePaths(prePath + (prePath && '.') + schemaPath, schemaField.schema));
-			} else if (schemaField.options._i18n) {
-				var i18nCapsulePath = (prePath + (prePath && '.') + schemaPath).replace(i18nCapsulePathMask, '$1');
-				if (i18nPathCapsules.indexOf(i18nCapsulePath) === -1) {
-					i18nPathCapsules.push(i18nCapsulePath);
-				}
+		i18nCapsulePathMask = /^(.*)\.[^\.]*$/
+	;
+	forIn(schema.paths, function (schemaField, schemaPath) {
+		if (schema.childSchemas.find(function (modSch) {
+				return modSch.schema === schemaField.schema;
+			})) {
+			i18nPathCapsules = i18nPathCapsules.concat(getI18nCapsulePaths(prePath + (prePath && '.') + schemaPath, schemaField.schema));
+		} else if (schemaField.options._i18n) {
+			var i18nCapsulePath = (prePath + (prePath && '.') + schemaPath).replace(i18nCapsulePathMask, '$1');
+			if (i18nPathCapsules.indexOf(i18nCapsulePath) === -1) {
+				i18nPathCapsules.push(i18nCapsulePath);
 			}
 		}
-	}
+	});
 	return i18nPathCapsules;
 }
 
