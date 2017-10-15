@@ -18,11 +18,9 @@ function ArrNoDupe(a) {
 	for (i; i < a.length; i++) {
 		temp[a[i]] = true;
 	}
-	for (k in temp) {
-		if (temp.hasOwnProperty(k)) {
-			r.push(k);
-		}
-	}
+	forIn(temp, function (v, k) {
+		r.push(k);
+	})
 	return r;
 }
 
@@ -41,16 +39,13 @@ function addLocales(prePath, pathname, schema, options_locales) {
 }
 
 function recursiveIteration(prePath, schema, options_locales) {
-	for (var key in schema.paths) {
-		if (schema.paths.hasOwnProperty(key)) {
-			var sPath = schema.paths[key];
-			if (sPath.schema) {
-				recursiveIteration(prePath + (prePath && '.') + key, sPath.schema, options_locales);
-			} else {
-				addLocales(prePath, sPath.path, schema, options_locales);
-			}
-		}
-	}
+	forIn(schema.paths, function (schemaField, schemaPath) {
+		if (schemaField.schema) {
+			recursiveIteration(prePath + (prePath && '.') + schemaPath, schemaField.schema, options_locales);
+		} else {
+			addLocales(prePath, schemaField.path, schema, options_locales);
+		}		
+	});
 }
 
 function getI18nCapsulePaths(prePath, schema) {
@@ -64,7 +59,7 @@ function getI18nCapsulePaths(prePath, schema) {
 			i18nPathCapsules = i18nPathCapsules.concat(getI18nCapsulePaths(prePath + (prePath && '.') + schemaPath, schemaField.schema));
 		} else if (schemaField.options._i18n) {
 			var i18nCapsulePath = (prePath + (prePath && '.') + schemaPath).replace(i18nCapsulePathMask, '$1');
-			if (i18nPathCapsules.indexOf(i18nCapsulePath) === -1) {
+			if (!~i18nPathCapsules.indexOf(i18nCapsulePath)) {
 				i18nPathCapsules.push(i18nCapsulePath);
 			}
 		}
