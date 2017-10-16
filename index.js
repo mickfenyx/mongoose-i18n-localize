@@ -69,10 +69,10 @@ function getI18nCapsulePaths(prePath, schema) {
 
 function localyzeRecursive(obj, i18nCapsulePathArr, o) {
 	var thisSubObjPath = i18nCapsulePathArr[0],
-		thisSubObj = obj[thisSubObjPath],
+		thisSubObj = obj && obj[thisSubObjPath],
 		val, defVal
 	;
-	if (i18nCapsulePathArr.length === 1) {
+	if (obj && i18nCapsulePathArr.length === 1) {
 		if (obj[thisSubObjPath]) {
 			if (o.locale) { val = obj[thisSubObjPath][o.locale]; }
 			defVal = obj[thisSubObjPath][o.defaultLocale];
