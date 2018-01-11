@@ -20,7 +20,7 @@ function ArrNoDupe(a) {
 	}
 	forIn(temp, function (v, k) {
 		r.push(k);
-	})
+	});
 	return r;
 }
 
