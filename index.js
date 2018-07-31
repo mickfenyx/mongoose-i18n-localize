@@ -95,7 +95,7 @@ function localyzeRecursive(obj, i18nCapsulePathArr, o) {
 }
 
 function addLocalized(o) {
-	var _obj = o.toJSON ? o.obj.toJSON() : o.obj.toObject(),
+	var _obj = o.toJSON ? o.obj.toJSON(o.params) : o.obj.toObject(o.params),
 		val, defVal, _i18n_paths = [];
 	_i18n_paths = getI18nCapsulePaths('', o.obj.schema);
 	_i18n_paths.forEach(function (i18nCapsulePath) {
@@ -116,6 +116,9 @@ function guessMorphAndApply(_this, args, extra) {
 		o.locale = args[1];
 	} else if (o.locale && typeof args[1] === 'string') {
 		o.defaultLocale = args[1];
+	}
+	if (args.length && typeof args[args.length-1] === 'object' && !args[args.length-1].hasOwnProperty('isNew')) {
+		o.params = args[args.length-1];
 	}
 	if (target && typeof args[2] === 'string') { o.defaultLocale = args[2]; }
 	if (!target && _this.hasOwnProperty('isNew')) { target = _this; }

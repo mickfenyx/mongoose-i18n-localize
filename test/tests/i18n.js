@@ -257,7 +257,22 @@ module.exports = function() {
 			for (var method in methods) {
 				if (methods.hasOwnProperty(method)) {
 					var methodOpts = methods[method],
-						formattedDocs = [doc[method](), doc[method]('en'), doc[method]('fr', 'en'), doc[method]('fr'), doc[method](doc), doc[method](doc, 'en'), doc[method](doc, 'fr', 'en')]
+						formattedDocs = [
+							doc[method](),
+							doc[method]('en'),
+							doc[method]('fr', 'en'),
+							doc[method]('fr'),
+							doc[method](doc),
+							doc[method](doc, 'en'),
+							doc[method](doc, 'fr', 'en'),
+							doc[method]({getters: true}),
+							doc[method]('en', {getters: true}),
+							doc[method]('fr', 'en', {getters: true}),
+							doc[method]('fr', {getters: true}),
+							doc[method](doc, {getters: true}),
+							doc[method](doc, 'en', {getters: true}),
+							doc[method](doc, 'fr', 'en', {getters: true})
+						]
 					;
 					formattedDocs.forEach(function(formattedDoc) {
 						if (methodOpts.only) {

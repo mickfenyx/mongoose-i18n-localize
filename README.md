@@ -108,6 +108,7 @@ All methods accept 3 optional arguments:
  1. ``resource`` (Object) - document(s) to localize
  2. ``localeName`` (String) - target locale to populate ``.localized`` subfield(in case of ``.toObjectLocalized(), .toJSONLocalized()``) or the field itself (``.toObjectLocalizedOnly(), .toJSONLocalizedOnly()``). Will use ``options.defaultLocale`` if omitted.
  3. ``defaultLocaleName`` (String) - locale to fallback, if the value for ``localeName`` is ``undefined``. Will also use ``options.defaultLocale`` if omitted.
+ 4. ``serialization options`` (object) - params that are passed down to the native ``toObject/toJSON`` schema methods.
 
  ```js
 Model.find(function(err, resources) {
@@ -116,6 +117,9 @@ Model.find(function(err, resources) {
 	localizedResources = resources.toJSONLocalizedOnly('de');
 	localizedResources = resources.toObjectLocalized(resources, 'de', 'en');
 	localizedResources = resources.toObjectLocalizedOnly('de', 'en');
+	localizedResources = resources.toObjectLocalized(resources, 'de', 'en', {getters: true});
+	localizedResources = resources.toObjectLocalizedOnly('de', 'en', {getters: true});
+	localizedResources = resources.toObjectLocalizedOnly({getters: true});
 });
 ```
 
