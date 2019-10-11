@@ -26,7 +26,11 @@ function ArrNoDupe(a) {
 
 function addLocales(prePath, pathname, schema, options_locales) {
 	var instance = schema.paths[pathname].instance,
-		config = schema.paths[pathname].options;
+		config = {}
+	;
+	forIn(schema.paths[pathname].options, function (el, key) {
+		config[key] = el;
+	})
 	if (config.i18n && typeof instance === 'string' && instance.match(/^(String|Number|Boolean|Date)$/i)) {
 		delete(config.i18n);
 		config._i18n = true;
