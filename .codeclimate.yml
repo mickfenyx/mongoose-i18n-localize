@@ -1,0 +1,15 @@
+version: "2"
+plugins: 
+  eslint:
+    enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+      - javascript
+  fixme:
+    enabled: true
+exclude_patterns:
+- "**/**.*"
+- "**/**"
+- "!index.js"

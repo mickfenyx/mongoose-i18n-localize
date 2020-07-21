@@ -22,6 +22,18 @@ module.exports = {
 			name: {
 				type: String,
 				i18n: true
+			},
+			date: {
+				type: Date,
+				i18n: true
+			},
+			number: {
+				type: Number,
+				i18n: true				
+			},
+			bool: {
+				type: Boolean,
+				i18n: true	
 			}
 		});
 	},
@@ -33,6 +45,21 @@ module.exports = {
 					type: String,
 					i18n: true
 				}
+			}
+		});
+	},
+
+	createI18nNestedObjectSchemaWithMultipleFields: function() {
+		return new mongoose.Schema({
+			nested: {
+				name: {
+					type: String,
+					i18n: true
+				}
+			},
+			name: {
+				type: String,
+				i18n: true
 			}
 		});
 	},

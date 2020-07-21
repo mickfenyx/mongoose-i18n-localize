@@ -1,114 +1,168 @@
 /* jshint node: true */
 'use strict';
-function ArrNoDupe(a) {
-    var temp = {}, r = [], i = 0, k;
-    for (i ; i < a.length; i++) {temp[a[i]] = true;}
-    for (k in temp){ temp.hasOwnProperty(k) && r.push(k); }
-    return r;
+
+function forIn(obj, callb) {
+	for (var k in obj) {
+		if (obj.hasOwnProperty(k)) {
+			var e = obj[k];
+			callb(e, k);
+		}
+	}
 }
-module.exports = function(schema, options) {
-	var options_locales = ArrNoDupe(options.locales||[])
+
+function ArrNoDupe(a) {
+	var temp = {},
+		r = [],
+		i = 0,
+		k;
+	for (i; i < a.length; i++) {
+		temp[a[i]] = true;
+	}
+	forIn(temp, function (v, k) {
+		r.push(k);
+	});
+	return r;
+}
+
+function addLocales(prePath, pathname, schema, options_locales) {
+	var instance = schema.paths[pathname].instance,
+		config = {}
 	;
-	var addLocales = function(pathname, schema) {
-		var instance = schema.paths[pathname].instance;
-		var config = schema.paths[pathname].options;
+	forIn(schema.paths[pathname].options, function (el, key) {
+		config[key] = el;
+	})
+	if (config.i18n && typeof instance === 'string' && instance.match(/^(String|Number|Boolean|Date)$/i)) {
+		delete(config.i18n);
+		config._i18n = true;
+		schema.remove(pathname);
 
-		if (config.i18n && (instance === 'String' || instance === 'Date')) {
-			delete(config.i18n);
-			schema.remove(pathname);
+		options_locales.forEach(function (locale) {
+			schema.path(pathname + '.' + locale, config);
+		});
+	}
+}
 
-			options_locales.forEach(function(locale) {
-				schema.path(pathname + '.' + locale, config);
+function recursiveIteration(prePath, schema, options_locales) {
+	forIn(schema.paths, function (schemaField, schemaPath) {
+		if (schemaField.schema) {
+			recursiveIteration(prePath + (prePath && '.') + schemaPath, schemaField.schema, options_locales);
+		} else {
+			addLocales(prePath, schemaField.path, schema, options_locales);
+		}		
+	});
+}
+
+function getI18nCapsulePaths(prePath, schema) {
+	var i18nPathCapsules = [],
+		i18nCapsulePathMask = /^(.*)\.[^\.]*$/
+	;
+	forIn(schema.paths, function (schemaField, schemaPath) {
+		if (schema.childSchemas.find(function (modSch) {
+				return modSch.schema === schemaField.schema;
+			})) {
+			i18nPathCapsules = i18nPathCapsules.concat(getI18nCapsulePaths(prePath + (prePath && '.') + schemaPath, schemaField.schema));
+		} else if (schemaField.options._i18n) {
+			var i18nCapsulePath = (prePath + (prePath && '.') + schemaPath).replace(i18nCapsulePathMask, '$1');
+			if (!~i18nPathCapsules.indexOf(i18nCapsulePath)) {
+				i18nPathCapsules.push(i18nCapsulePath);
+			}
+		}
+	});
+	return i18nPathCapsules;
+}
+
+function localyzeRecursive(obj, i18nCapsulePathArr, o) {
+	var thisSubObjPath = i18nCapsulePathArr[0],
+		thisSubObj = obj && obj[thisSubObjPath],
+		val, defVal
+	;
+	if (obj && i18nCapsulePathArr.length === 1) {
+		if (obj[thisSubObjPath]) {
+			if (o.locale) { val = obj[thisSubObjPath][o.locale]; }
+			defVal = obj[thisSubObjPath][o.defaultLocale];
+			val = (typeof val !== 'undefined') ? val : defVal;
+			if (o.only) {
+				obj[thisSubObjPath] = val;
+			} else {
+				obj[thisSubObjPath].localized = val;
+			}
+		}
+	} else if (thisSubObj && i18nCapsulePathArr.length > 1) {
+		if (thisSubObj instanceof Array) {
+			thisSubObj.map(function (i) {
+				localyzeRecursive(i, i18nCapsulePathArr.slice(1), o);
 			});
+		} else {
+			localyzeRecursive(thisSubObj, i18nCapsulePathArr.slice(1), o);
 		}
-	};
+	}
+}
 
-	var recursiveIteration = function(schema) {
-		for (var key in schema.paths) {
-			if (schema.paths[key].schema) recursiveIteration(schema.paths[key].schema);
-			else addLocales(schema.paths[key].path, schema);
+function addLocalized(o) {
+	var _obj = o.toJSON ? o.obj.toJSON(o.params) : o.obj.toObject(o.params),
+		val, defVal, _i18n_paths = [];
+	_i18n_paths = getI18nCapsulePaths('', o.obj.schema);
+	_i18n_paths.forEach(function (i18nCapsulePath) {
+		var i18nCapsulePathArr = i18nCapsulePath.split('.');
+		localyzeRecursive(_obj, i18nCapsulePathArr, o);
+	});
+	return _obj;
+}
+
+function guessMorphAndApply(_this, args, extra) {
+	var o = {}, target, options_defaultLocale = extra[3];
+	if (typeof args[0] === 'string') {
+		o.locale = args[0];
+	} else if (args[0] && args[0].hasOwnProperty('isNew')) {
+		target = args[0];
+	}
+	if (!o.locale && typeof args[1] === 'string') {
+		o.locale = args[1];
+	} else if (o.locale && typeof args[1] === 'string') {
+		o.defaultLocale = args[1];
+	}
+	if (args.length && typeof args[args.length-1] === 'object' && !args[args.length-1].hasOwnProperty('isNew')) {
+		o.params = args[args.length-1];
+	}
+	if (target && typeof args[2] === 'string') { o.defaultLocale = args[2]; }
+	if (!target && _this.hasOwnProperty('isNew')) { target = _this; }
+	if (!o.defaultLocale) { o.defaultLocale = options_defaultLocale; }
+	if (!o.locale) { o.locale = options_defaultLocale; }
+	o.toJSON = extra[0];
+	o.only = extra[1];
+	o.obj = target;
+	return addLocalized(o);
+}
+
+function mongooseI18nLocalyse(schema, options) {
+	options = options || {};
+	var options_locales = ArrNoDupe(options.locales || []),
+		options_defaultLocale = options.defaultLocale
+	;
+
+	if (options_locales.length > 0) {
+		recursiveIteration('', schema, options_locales);
+		if (!~options_locales.indexOf(options_defaultLocale)) {
+			options_defaultLocale = options_locales[0];
 		}
+	}
+
+	schema.methods.toJSONLocalized = function () {
+		return guessMorphAndApply(this, arguments, [true, false, 'toJSONLocalized', options_defaultLocale]);
 	};
 
-	if (options && options_locales instanceof Array && options_locales.length > 0) recursiveIteration(schema);
-
-	var localize = function(obj, locale, toJSON) {
-		var addLocalized = function(obj) {
-			for (var key in obj) {
-				if (key === '_id') continue;
-				else if (typeof obj[key] === 'object') addLocalized(obj[key]);
-				else if (key === locale) obj.localized = obj[key];
-			}
-			return obj;
-		};
-
-		if (obj instanceof Array) return obj.map(function(object) {
-			return addLocalized(toJSON ? object.toJSON() : object.toObject(), locale);
-		});
-		else return addLocalized(toJSON ? obj.toJSON() : obj.toObject(), locale);
+	schema.methods.toObjectLocalized = function () {
+		return guessMorphAndApply(this, arguments, [false, false, 'toObjectLocalized', options_defaultLocale]);
 	};
 
-	schema.methods.toJSONLocalized = function(obj, locale) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localize(obj, locale, true);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localize(this, obj, true);
-		}
-		return ret;
+	schema.methods.toJSONLocalizedOnly = function () {
+		return guessMorphAndApply(this, arguments, [true, true, 'toJSONLocalizedOnly', options_defaultLocale]);
 	};
 
-	schema.methods.toObjectLocalized = function(obj, locale) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localize(obj, locale, false);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localize(this, obj, false);
-		}
-		return ret;
-	};
-	
-	var localizeOnly = function(obj, locale, localeDefault, toJSON) {
-		var addLocalized = function(obj) {
-			for (var key in obj) {
-				if (key === '_id') continue;
-				else if (typeof obj[key] === 'object' && !(obj[key] instanceof Date)) {
-					addLocalized(obj[key]);
-					if(obj[key] && obj[key].localized !== undefined) {
-						obj[key] = obj[key].localized;
-					} else if(localeDefault && obj[key] && obj[key].default !== undefined) {
-						obj[key] = obj[key].default;
-					}
-				}
-				else if (key === locale) obj.localized = obj[key];
-				else if (localeDefault && key === localeDefault) obj.default = obj[key];
-			}
-			return obj;
-		};
-
-		if (obj instanceof Array) return obj.map(function(object) {
-			return addLocalized(toJSON ? object.toJSON() : object.toObject(), locale);
-		});
-		else return addLocalized(toJSON ? obj.toJSON() : obj.toObject(), locale);
+	schema.methods.toObjectLocalizedOnly = function () {
+		return guessMorphAndApply(this, arguments, [false, true, 'toObjectLocalizedOnly', options_defaultLocale]);
 	};
 
-	schema.methods.toJSONLocalizedOnly = function(obj, locale, localeDefault) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localizeOnly(obj, locale, localeDefault, true);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localizeOnly(this, obj, locale, true);
-		}
-		return ret;
-	};
+}
 
-	schema.methods.toObjectLocalizedOnly = function(obj, locale, localeDefault) {
-		var ret;
-		if (typeof obj === 'object') {
-			ret = localizeOnly(obj, locale, localeDefault, false);
-		} else if (typeof obj === 'string' && this.hasOwnProperty('isNew')) {
-			ret = localizeOnly(this, obj, locale, false);
-		}
-		return ret;
-	};
-};
+module.exports = mongooseI18nLocalyse;
